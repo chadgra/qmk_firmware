@@ -82,18 +82,18 @@ TT(_MOVE), KC_A   , KC_S   , KC_D   , KC_F   , KC_G   , XXXXXXX,       KC_BTN1, 
  * |------+------+------+------+------+------| Mute  |< O >|       |------+------+------+------+------+------|
  * |      | LGUI | LCTR | LAlt | CAPS |      |-------.  D  ,-------| Left | Down |  Up  | Right|      | End  |
  * |------+------+------+------+------+------| Pg Dn |< E >| VolUp |------+------+------+------+------+------|
- * |      |      |      |      |      |      |-------|  R  |-------|      |      |PgDown|      |      |      |
+ * |LShift|      |      |      |      |      |-------|  R  |-------|      |      |PgDown|      |      |RShift|
  * `-----------------------------------------/       /      \      \-----------------------------------------'
- *            |      |      |      |      | /LShift /        \      \  | Menu |      |      |      |
+ *            | LGUI | LAlt | LCTR |      | /LShift /        \      \  | Menu | RCTR | RAlt | RGUI |
  *            |      |      |      |      |/       /          \      \ |      |      |      |      |
  *            `-----------------------------------'            '------''---------------------------'
  */
 [_MOVE] = LAYOUT_via(
-TO(_BASE), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                         XXXXXXX, XXXXXXX, KC_PGUP, XXXXXXX,G(KC_LEFT), XXXXXXX,
+TO(_BASE), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                         XXXXXXX, XXXXXXX, KC_PGUP, XXXXXXX, KC_HOME, XXXXXXX,
   XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_PGUP,       KC_VOLD, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_BSPC,
-  _______, KC_LGUI, KC_LCTL, KC_LALT, KC_CAPS, XXXXXXX,   KC_NO,       KC_MPLY, KC_LEFT, KC_DOWN, KC_UP  , KC_RGHT, XXXXXXX,G(KC_RGHT),
-  XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_PGDN,       KC_VOLU, XXXXXXX, XXXXXXX, KC_PGDN, XXXXXXX, XXXXXXX, XXXXXXX,
-                  XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_LSFT,           XXXXXXX,  KC_APP, XXXXXXX, XXXXXXX, XXXXXXX
+  _______, KC_LGUI, KC_LCTL, KC_LALT, KC_CAPS, XXXXXXX,   KC_NO,       KC_MPLY, KC_LEFT, KC_DOWN, KC_UP  , KC_RGHT, XXXXXXX, KC_END ,
+  _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_PGDN,       KC_VOLU, XXXXXXX, XXXXXXX, KC_PGDN, XXXXXXX, XXXXXXX, _______,
+                  _______, _______, _______, XXXXXXX, KC_LSFT,           XXXXXXX,  KC_APP, _______, _______, _______
 ),
 
 /* LOWER
