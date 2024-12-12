@@ -59,6 +59,9 @@ for more options.
 
 #define TAPPING_TOGGLE     2
 
+// Enable Caps word when both left and right shift keys are pressed
+#define BOTH_SHIFTS_TURNS_ON_CAPS_WORD
+
 // Control / paren setup
 #define LCPO_KEYS KC_LEFT_CTRL, KC_TRNS, KC_LBRC
 #define RCPC_KEYS KC_RIGHT_CTRL, KC_TRNS, KC_RBRC
