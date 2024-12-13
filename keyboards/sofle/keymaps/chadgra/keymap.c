@@ -31,6 +31,8 @@ enum custom_keycodes {
     MOUSE_MOVE_DOWN,
     MOUSE_MOVE_RIGHT,
     MOUSE_MOVE_LEFT,
+    MOD_SKIP_WORD,
+    MOD_SKIP_PAGE
 };
 
 enum custom_layers {
@@ -46,6 +48,8 @@ enum custom_layers {
 #define MS_D        MOUSE_MOVE_DOWN
 #define MS_R        MOUSE_MOVE_RIGHT
 #define MS_L        MOUSE_MOVE_LEFT
+#define M_WORD      MOD_SKIP_WORD
+#define M_PAGE      MOD_SKIP_PAGE
 
 //Default keymap. This can be changed in Via. Use oled.c to change beavior that Via cannot change.
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -80,7 +84,7 @@ TT(_MOVE), KC_A   , KC_S   , KC_D   , KC_F   , KC_G   , XXXXXXX,       KC_BTN1, 
  * |------+------+------+------+------+------| Pg Up |< N >| VolDn |------+------+------+------+------+------|
  * |      |      |      |      |      |      |-------.  C  ,-------|      |      |      |      |      | Bspc |
  * |------+------+------+------+------+------| Mute  |< O >|       |------+------+------+------+------+------|
- * |      | LGUI | LCTR | LAlt | CAPS |      |-------.  D  ,-------| Left | Down |  Up  | Right|      | End  |
+ * |      | LGUI |M_PAGE|M_WORD| CAPS |      |-------.  D  ,-------| Left | Down |  Up  | Right|      | End  |
  * |------+------+------+------+------+------| Pg Dn |< E >| VolUp |------+------+------+------+------+------|
  * |LShift|      |      |      |      |      |-------|  R  |-------|      |      |PgDown|      |      |RShift|
  * `-----------------------------------------/       /      \      \-----------------------------------------'
@@ -91,7 +95,7 @@ TT(_MOVE), KC_A   , KC_S   , KC_D   , KC_F   , KC_G   , XXXXXXX,       KC_BTN1, 
 [_MOVE] = LAYOUT(
 TO(_BASE), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                         XXXXXXX, XXXXXXX, KC_PGUP, XXXXXXX, KC_HOME, XXXXXXX,
   XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_PGUP,       KC_VOLD, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_BSPC,
-  _______, KC_LGUI, KC_LCTL, KC_LALT, KC_CAPS, XXXXXXX,   KC_NO,       KC_MPLY, KC_LEFT, KC_DOWN, KC_UP  , KC_RGHT, XXXXXXX, KC_END ,
+  _______, KC_LGUI,  M_PAGE,  M_WORD, KC_CAPS, XXXXXXX,   KC_NO,       KC_MPLY, KC_LEFT, KC_DOWN, KC_UP  , KC_RGHT, XXXXXXX, KC_END ,
   _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_PGDN,       KC_VOLU, XXXXXXX, XXXXXXX, KC_PGDN, XXXXXXX, XXXXXXX, _______,
                   _______, _______, _______, XXXXXXX, KC_LSFT,           XXXXXXX,  KC_APP, _______, _______, _______
 ),
@@ -162,6 +166,9 @@ static bool is_mouse_move_left = false;
 static int mouse_move_left_start_timer = 0;
 static int mouse_move_left_repeat_timer = 0;
 
+// The string representing which OS it is detected being connected to
+char *os_string = "???";
+
 #define MOUSE_SCREEN_TIME       350
 #define MOUSE_MOVE_ACL2_TIME    50
 #define MOUSE_MOVE_ACL1_TIME    200
@@ -204,6 +211,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     // if ((keycode >= SAFE_RANGE) && !(record->event.pressed)) {
     //     return false;
     // }
+    os_variant_t detected_os = detected_host_os();
+    uint8_t mode;
 
     switch (keycode) {
         case MOUSE_SCREEN_RIGHT:
@@ -229,6 +238,34 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             break;
         case MOUSE_MOVE_LEFT:
             init_mouse_move(KC_MS_L, &mouse_move_left_start_timer, &mouse_move_left_repeat_timer, &is_mouse_move_left);
+            break;
+        case MOD_SKIP_WORD:
+            if ((detected_os == OS_MACOS) || (detected_os == OS_IOS)) {
+                mode = MOD_MASK_ALT;
+            } else {
+                mode = MOD_MASK_CTRL;
+            }
+
+            if (record->event.pressed) {
+                register_mods(mode);
+            } else {
+                unregister_mods(mode);
+            }
+
+            break;
+        case MOD_SKIP_PAGE:
+            if ((detected_os == OS_MACOS) || (detected_os == OS_IOS)) {
+                mode = MOD_MASK_CTRL;
+            } else {
+                mode = MOD_MASK_GUI;
+            }
+
+            if (record->event.pressed) {
+                register_mods(mode);
+            } else {
+                unregister_mods(mode);
+            }
+
             break;
     }
 
@@ -283,6 +320,35 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     return state;
 }
 
+uint32_t custom_os_settings(uint32_t trigger_time, void *cb_arg) {
+    os_variant_t detected_os = detected_host_os();
+    uint16_t retry_ms = 0;
+
+    switch (detected_os) {
+        case OS_MACOS:
+        case OS_IOS:
+            os_string = "Mac";
+            break;
+        case OS_WINDOWS:
+            os_string = "Win";
+            keymap_config.swap_lctl_lgui = true;
+            keymap_config.swap_rctl_rgui = true;
+            break;
+        case OS_LINUX:
+            os_string = "Linux";
+            keymap_config.swap_lctl_lgui = true;
+            keymap_config.swap_rctl_rgui = true;
+            break;
+        case OS_UNSURE:
+            os_string = "???";
+            retry_ms = 500;
+            break;
+    }
+
+    return retry_ms;
+}
+
 void keyboard_post_init_user(void) {
     rgblight_disable_noeeprom();
+    defer_exec(500, custom_os_settings, NULL);
 }
