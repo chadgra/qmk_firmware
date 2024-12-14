@@ -42,6 +42,36 @@ enum custom_layers {
     _RAISE
 };
 
+// Tap Dance keycodes
+enum td_keycodes {
+    ALCB,       // `LALT` when held, `{` when tapped.
+    ARCB,       // `RALT` when held, `}` when tapped.
+};
+
+// Define a type containing as many tapdance states as you need
+typedef enum {
+    TD_NONE,
+    TD_UNKNOWN,
+    TD_SINGLE_TAP,
+    TD_SINGLE_HOLD,
+    TD_DOUBLE_SINGLE_TAP
+} td_state_t;
+
+// Create a global instance of the tapdance state type
+static td_state_t td_state;
+
+// Declare your tapdance functions:
+
+// Function to determine the current tapdance state
+td_state_t cur_dance(tap_dance_state_t *state);
+
+// `finished` and `reset` functions for each tapdance keycode
+void alt_lcb_finished(tap_dance_state_t *state, void *user_data);
+void alt_lcb_reset(tap_dance_state_t *state, void *user_data);
+void alt_rcb_finished(tap_dance_state_t *state, void *user_data);
+void alt_rcb_reset(tap_dance_state_t *state, void *user_data);
+
+
 #define MS_SC_R     MOUSE_SCREEN_RIGHT
 #define MS_SC_L     MOUSE_SCREEN_LEFT
 #define MS_U        MOUSE_MOVE_UP
@@ -74,7 +104,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
    KC_TAB, KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,C(KC_RGHT),     MS_SC_L, KC_Y    , KC_U   , KC_I   , KC_O   , KC_P   , KC_BSPC,
 TT(_MOVE), KC_A   , KC_S   , KC_D   , KC_F   , KC_G   , XXXXXXX,       KC_BTN1, KC_H    , KC_J   , KC_K   , KC_L   , KC_SCLN, KC_QUOT,
   SC_LSPO, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   ,C(KC_LEFT),     MS_SC_R, KC_N    , KC_M   , KC_COMM, KC_DOT , KC_SLSH, SC_RSPC,
-                KC_LGUI, SC_LAPO, SC_LCPO,TT(_LOWER), KC_ENT ,           KC_SPC ,TT(_RAISE), SC_RCPC, SC_RAPC, KC_RGUI
+                KC_LGUI, TD(ALCB), SC_LCPO,TT(_LOWER), KC_ENT ,           KC_SPC ,TT(_RAISE), SC_RCPC, TD(ARCB), KC_RGUI
 ),
 
 /*
@@ -106,7 +136,7 @@ TO(_BASE), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                         
  * |------+------+------+------+------+------|       |< N >|       |------+------+------+------+------+------|
  * |  `   |   1  |   2  |   3  |   4  |   5  |-------.  C  ,-------|   6  |   7  |   8  |   -  |   =  | F12  |
  * |------+------+------+------+------+------|       |< O >|       |------+------+------+------+------+------|
- * | Tab  |   !  |   @  |   #  |   $  |   %  |-------.  D  ,-------|   ^  |   &  |   *  |   {  |   }  |   \  |
+ * | Tab  |   !  |   @  |   #  |   $  |   %  |-------.  D  ,-------|   ^  |   &  |   *  |   [  |   ]  |   \  |
  * |------+------+------+------+------+------|       |< E >|       |------+------+------+------+------+------|
  * | Shift|  =   |  -   |  +   |   {  |   }  |-------|  R  |-------|   [  |   ]  |   ;  |   :  |   \  |      |
  * `-----------------------------------------/       /      \      \-----------------------------------------'
@@ -117,7 +147,7 @@ TO(_BASE), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                         
 [_LOWER] = LAYOUT(
   _______, KC_F1  , KC_F2  , KC_F3  , KC_F4  , KC_F5  ,                         KC_F6  , KC_F7  , KC_F8  , KC_F9  , KC_F10 , KC_F11 ,
   KC_GRV , KC_F11 , KC_F12 , KC_3   , KC_4   , KC_5   , _______,       _______, KC_6   , KC_7   , KC_8   , KC_MINS, KC_EQL , KC_DEL ,
-  _______, KC_EXLM, KC_AT  , KC_HASH, KC_DLR , KC_PERC, _______,       _______, KC_CIRC, KC_AMPR, KC_ASTR, KC_LCBR, KC_RCBR, KC_BSLS,
+  _______, KC_EXLM, KC_AT  , KC_HASH, KC_DLR , KC_PERC, _______,       _______, KC_CIRC, KC_AMPR, KC_ASTR, KC_LBRC, KC_RBRC, KC_BSLS,
   _______, KC_EQL , KC_MINS, KC_PLUS, KC_LCBR, KC_RCBR, _______,       _______, KC_LBRC, KC_RBRC, KC_SCLN, KC_COLN, KC_BSLS, _______,
                   _______, _______, _______, _______, _______,           _______, _______, _______, _______, _______
 ),
@@ -189,19 +219,7 @@ void handle_mouse_move(uint16_t keycode, int start_timer, int repeat_timer, bool
         if (timer_elapsed(repeat_timer) > 200) {
             *is_move = false;
             unregister_code(keycode);
-            // unregister_code(KC_ACL0);
-            // unregister_code(KC_ACL1);
-            // unregister_code(KC_ACL2);
         }
-        // int ms_since_start = timer_elapsed(start_timer);
-        // if (ms_since_start > 400) {
-        //     unregister_code(KC_ACL1);
-        //     register_code(KC_ACL2);
-        // }
-        // else if (ms_since_start > 200) {
-        //     unregister_code(KC_ACL0);
-        //     register_code(KC_ACL1);
-        // }
     }
 }
 
@@ -352,3 +370,79 @@ void keyboard_post_init_user(void) {
     rgblight_disable_noeeprom();
     defer_exec(500, custom_os_settings, NULL);
 }
+
+// Determine the tapdance state to return
+td_state_t cur_dance(tap_dance_state_t *state) {
+    if (state->count == 1) {
+        if (state->interrupted || !state->pressed) {
+            return TD_SINGLE_TAP;
+        } else {
+            return TD_SINGLE_HOLD;
+        }
+    }
+
+    if (state->count == 2) {
+        return TD_DOUBLE_SINGLE_TAP;
+    } else {
+        return TD_UNKNOWN; // Any number higher than the maximum state value you return above
+    }
+}
+
+// Handle the possible states for each tapdance keycode you define:
+
+void tap_dance_finished(tap_dance_state_t *state, void *user_data, uint16_t tap, uint16_t hold) {
+    td_state = cur_dance(state);
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            register_code16(tap);
+            break;
+        case TD_SINGLE_HOLD:
+            register_mods(hold);
+            break;
+        case TD_DOUBLE_SINGLE_TAP: // Allow nesting of 2 taps
+            tap_code16(tap);
+            register_code16(tap);
+            break;
+        default:
+            break;
+    }
+}
+
+void tap_dance_reset(tap_dance_state_t *state, void *user_data, uint16_t tap, uint16_t hold) {
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            unregister_code16(tap);
+            break;
+        case TD_SINGLE_HOLD:
+            unregister_mods(hold); // For a layer-tap key, use `layer_off(_MY_LAYER)` here
+            break;
+        case TD_DOUBLE_SINGLE_TAP:
+            unregister_code16(tap);
+            break;
+        default:
+            break;
+    }
+}
+
+
+void alt_lcb_finished(tap_dance_state_t *state, void *user_data) {
+    tap_dance_finished(state, user_data, KC_LCBR, MOD_BIT(KC_LALT));
+}
+
+void alt_lcb_reset(tap_dance_state_t *state, void *user_data) {
+    tap_dance_reset(state, user_data, KC_LCBR, MOD_BIT(KC_LALT));
+}
+
+void alt_rcb_finished(tap_dance_state_t *state, void *user_data) {
+    tap_dance_finished(state, user_data, KC_RCBR, MOD_BIT(KC_RALT));
+}
+
+void alt_rcb_reset(tap_dance_state_t *state, void *user_data) {
+    tap_dance_reset(state, user_data, KC_RCBR, MOD_BIT(KC_RALT));
+}
+
+// Define `ACTION_TAP_DANCE_FN_ADVANCED()` for each tapdance keycode, passing in `finished` and `reset` functions
+tap_dance_action_t tap_dance_actions[] = {
+    [ALCB] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, alt_lcb_finished, alt_lcb_reset),
+    [ARCB] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, alt_rcb_finished, alt_rcb_reset)
+};
