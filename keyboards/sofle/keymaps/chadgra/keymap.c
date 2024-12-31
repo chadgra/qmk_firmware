@@ -32,7 +32,11 @@ enum custom_keycodes {
     MOUSE_MOVE_RIGHT,
     MOUSE_MOVE_LEFT,
     MOD_SKIP_WORD,
-    MOD_SKIP_PAGE
+    MOD_SKIP_PAGE,
+    MOD_L_MAC_CMD,
+    MOD_L_MAC_CTL,
+    MOD_R_MAC_CMD,
+    MOD_R_MAC_CTL,
 };
 
 enum custom_layers {
@@ -80,6 +84,10 @@ void alt_rcb_reset(tap_dance_state_t *state, void *user_data);
 #define MS_L        MOUSE_MOVE_LEFT
 #define M_WORD      MOD_SKIP_WORD
 #define M_PAGE      MOD_SKIP_PAGE
+#define LMG         MOD_L_MAC_CMD
+#define LMC         MOD_L_MAC_CTL
+#define RMG         MOD_R_MAC_CMD
+#define RMC         MOD_R_MAC_CTL
 
 //Default keymap. This can be changed in Via. Use oled.c to change beavior that Via cannot change.
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -104,7 +112,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
    KC_TAB, KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,C(KC_RGHT),     MS_SC_L, KC_Y    , KC_U   , KC_I   , KC_O   , KC_P   , KC_BSPC,
 TT(_MOVE), KC_A   , KC_S   , KC_D   , KC_F   , KC_G   , XXXXXXX,       KC_BTN1, KC_H    , KC_J   , KC_K   , KC_L   , KC_SCLN, KC_QUOT,
   SC_LSPO, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   ,C(KC_LEFT),     MS_SC_R, KC_N    , KC_M   , KC_COMM, KC_DOT , KC_SLSH, SC_RSPC,
-                KC_LGUI, TD(ALCB), SC_LCPO,TT(_LOWER), KC_ENT ,           KC_SPC ,TT(_RAISE), SC_RCPC, TD(ARCB), KC_RGUI
+                    LMG, TD(ALCB),     LMC,TT(_LOWER), KC_ENT ,           KC_SPC ,TT(_RAISE),     RMC, TD(ARCB),     RMG
 ),
 
 /*
@@ -155,11 +163,11 @@ TO(_BASE), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                         
  * ,----------------------------------------.                      ,-----------------------------------------.
  * |Cycle |      |      |      |      |      |-------.  E  ,-------|      |      |      |      |      |      |
  * |------+------+------+------+------+------|       |< N >|       |------+------+------+------+------+------|
- * | Esc  | Ins  | Pscr | Menu |      |      |-------.  C  ,-------|      |      |  Up  |      | DLine| Bspc |
+ * | Esc  | Ins  | Pscr | Menu |  C+R |      |-------.  C  ,-------|      |      |  Up  |      | DLine| Bspc |
  * |------+------+------+------+------+------|       |< O >|       |------+------+------+------+------+------|
  * | Tab  | LAt  | LCtl |LShift|      | Caps |-------.  D  ,-------|      | Left | Down | Rigth|  Del | Bspc |
  * |------+------+------+------+------+------|       |< E >|       |------+------+------+------+------+------|
- * |Shift | Undo |  Cut | Copy | Paste|      |-------|  R  |-------|      | LStr |      | LEnd |      | Shift|
+ * |Shift | Undo |  Cut | Copy | Paste|  C+B |-------|  R  |-------|      | LStr |      | LEnd |      | Shift|
  * `-----------------------------------------/      /       \      \-----------------------------------------'
  *            | LGUI | LAlt | LCTR |LOWER | /Enter /         \Space \  |RAISE | RCTR | RAlt | RGUI |
  *            |      |      |      |      |/      /           \      \ |      |      |      |      |
@@ -167,9 +175,9 @@ TO(_BASE), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                         
  */
 [_RAISE] = LAYOUT(
   _______, _______, _______, _______, _______, _______,                       _______, _______, _______, _______, _______, _______,
-  _______, XXXXXXX, XXXXXXX, KC_MS_U, XXXXXXX, XXXXXXX,    MS_R,       MS_D,  XXXXXXX, KC_BTN1, XXXXXXX, KC_BTN2, _______, KC_BSPC,
+  _______, XXXXXXX, XXXXXXX, KC_MS_U, C(KC_R), XXXXXXX,    MS_R,       MS_D,  XXXXXXX, KC_BTN1, XXXXXXX, KC_BTN2, _______, KC_BSPC,
   _______, XXXXXXX, KC_WH_L, KC_WH_U, KC_WH_D, KC_WH_R, _______,    _______,  KC_MS_L, KC_MS_D, KC_MS_U, KC_MS_R, KC_DEL , KC_BSPC,
-  _______, XXXXXXX, XXXXXXX, KC_MS_D, XXXXXXX, XXXXXXX,    MS_L,       MS_U,  XXXXXXX, _______, XXXXXXX, _______, XXXXXXX, _______,
+  _______, XXXXXXX, XXXXXXX, KC_MS_D, XXXXXXX, C(KC_B),    MS_L,       MS_U,  XXXXXXX, _______, XXXXXXX, _______, XXXXXXX, _______,
                    _______, _______, _______, _______, KC_BTN2,        KC_BTN1, _______, _______, _______, _______
 )
 };
@@ -223,15 +231,34 @@ void handle_mouse_move(uint16_t keycode, int start_timer, int repeat_timer, bool
     }
 }
 
+void os_specific_mod(keyrecord_t *record, uint8_t mac_mod, uint8_t win_mod) {
+    uint8_t mod = win_mod;
+    os_variant_t detected_os = detected_host_os();
+
+    if ((detected_os == OS_MACOS) || (detected_os == OS_IOS)) {
+        mod = mac_mod;
+    }
+
+    if (record->event.pressed) {
+        register_mods(mod);
+    } else {
+        unregister_mods(mod);
+    }
+}
+
+void os_specific_sc(keyrecord_t *record, uint16_t mac_code, uint16_t win_code) {
+    uint16_t code = win_code;
+    os_variant_t detected_os = detected_host_os();
+
+    if ((detected_os == OS_MACOS) || (detected_os == OS_IOS)) {
+        code = mac_code;
+    }
+
+    process_space_cadet(code, record);
+}
+
 // Custom keycode handling.
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    // handling this once instead of in each keycode uses less program memory.
-    // if ((keycode >= SAFE_RANGE) && !(record->event.pressed)) {
-    //     return false;
-    // }
-    os_variant_t detected_os = detected_host_os();
-    uint8_t mode;
-
     switch (keycode) {
         case MOUSE_SCREEN_RIGHT:
             is_mouse_screen_right = true;
@@ -258,38 +285,29 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             init_mouse_move(KC_MS_L, &mouse_move_left_start_timer, &mouse_move_left_repeat_timer, &is_mouse_move_left);
             break;
         case MOD_SKIP_WORD:
-            if ((detected_os == OS_MACOS) || (detected_os == OS_IOS)) {
-                mode = MOD_MASK_ALT;
-            } else {
-                mode = MOD_MASK_CTRL;
-            }
-
-            if (record->event.pressed) {
-                register_mods(mode);
-            } else {
-                unregister_mods(mode);
-            }
-
+            os_specific_mod(record, MOD_MASK_ALT, MOD_MASK_CTRL);
             break;
         case MOD_SKIP_PAGE:
-            if ((detected_os == OS_MACOS) || (detected_os == OS_IOS)) {
-                mode = MOD_MASK_CTRL;
-            } else {
-                mode = MOD_MASK_GUI;
-            }
-
-            if (record->event.pressed) {
-                register_mods(mode);
-            } else {
-                unregister_mods(mode);
-            }
-
+            os_specific_mod(record, MOD_MASK_CTRL, MOD_MASK_GUI);
             break;
+        case MOD_L_MAC_CMD:
+            os_specific_mod(record, MOD_BIT(KC_LGUI), MOD_BIT(KC_LCTL));
+            break;
+        case MOD_L_MAC_CTL:
+            os_specific_sc(record, SC_LCPO, SC_LAPO);
+            break;
+        case MOD_R_MAC_CMD:
+            os_specific_mod(record, MOD_BIT(KC_RGUI), MOD_BIT(KC_RCTL));
+            break;
+        case MOD_R_MAC_CTL:
+            os_specific_sc(record, SC_RCPC, SC_RAPC);
+            break;
+
     }
 
     // this uses less memory than returning in each case.
     return keycode < SAFE_RANGE;
-};
+}
 
 void matrix_scan_user(void) {
     encoder_action_unregister();
@@ -349,13 +367,9 @@ uint32_t custom_os_settings(uint32_t trigger_time, void *cb_arg) {
             break;
         case OS_WINDOWS:
             os_string = "Win";
-            keymap_config.swap_lctl_lgui = true;
-            keymap_config.swap_rctl_rgui = true;
             break;
         case OS_LINUX:
             os_string = "Linux";
-            keymap_config.swap_lctl_lgui = true;
-            keymap_config.swap_rctl_rgui = true;
             break;
         case OS_UNSURE:
             os_string = "???";
